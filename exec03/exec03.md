@@ -38,7 +38,7 @@ CMD ["node", "main.js"]
 }
 ```
 
-> sawrm-api/main.js
+> swarm-api/main.js
 
 ```js
 const express = require('express');
