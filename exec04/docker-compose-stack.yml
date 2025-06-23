@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  db:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - db-data:/data/db
+
+  survey:
+    image: rhonalchirinos/exec04-survey:latest
+    command: sh -c "bun install && bun --hot --watch src/main.ts"
+    ports:
+      - 3000:3000
+    depends_on:
+      - db
+
+  auth:
+    image: rhonalchirinos/exec04-auth:latest
+    command: sh -c "bun install && bun --hot --watch src/main.ts"
+    ports:
+      - 3001:3001
+    depends_on:
+      - db
+
+  stats:
+    image: rhonalchirinos/exec04-stats:latest
+    command: sh -c "uvicorn src.app:app --host 0.0.0.0 --port 3002"
+    ports:
+      - 3002:3002
+    depends_on:
+      - db
+
+  haproxy:
+    image: rhonalchirinos/exec04-haproxy:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - stats
+      - auth
+      - survey
+
+  visualizer:
+    image: dockersamples/visualizer:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+
+volumes:
+  db-data: 
