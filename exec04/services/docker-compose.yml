@@ -12,7 +12,7 @@ services:
     build:
       context: ./survey
       dockerfile: ./Dockerfile
-    command: sh -c "bun install && bun --hot --watch src/main.ts"
+    command: sh -c "npm install && node /app/src/main.js"
     ports:
       - 3000:3000
     volumes:
@@ -24,7 +24,7 @@ services:
     build:
       context: ./auth
       dockerfile: ./Dockerfile
-    command: sh -c "bun install && bun --hot --watch src/main.ts"
+      command: sh -c "bun install && bun --hot --watch src/main.ts"
     ports:
       - 3001:3001
     volumes:
