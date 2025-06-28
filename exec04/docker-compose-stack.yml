@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  db:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - db-data:/data/db
+    deploy:
+      placement:
+        constraints:
+          - node.labels.db == true
+      resources:
+        limits:
+          cpus: '8.0'
+          memory: 8G
+
+  survey:
+    image: rhonalchirinos/exec04-survey:latest
+    ports:
+      - 3000:3000
+    command: sh -c "node /app/src/main.js"
+    depends_on:
+      - db
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+      placement:
+        constraints: [ node.labels.worker == true ]
+
+  auth:
+    image: rhonalchirinos/exec04-auth:latest
+    ports:
+      - 3001:3001
+    command: sh -c "node /app/src/main.js"
+    depends_on:
+      - db
+    deploy:
+      replicas: 3
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+      placement:
+        constraints: [ node.labels.worker == true ]
+    environment:
+      - MONGO_DB=mongodb://db:27017/app
+      - PORT=3001
+  # Stats service
+  stats:
+    image: rhonalchirinos/exec04-stats:latest
+    ports:
+      - 3002:3002
+    depends_on:
+      - db
+    deploy:
+      replicas: 2
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+      placement:
+        constraints: [ node.labels.worker == true ]
+
+  haproxy:
+    image: rhonalchirinos/exec04-haproxy:latest
+    ports:
+      - "80:8080"
+    depends_on:
+      - stats
+      - auth
+      - survey
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+
+  visualizer:
+    image: dockersamples/visualizer:latest
+    ports:
+      - "8080:8080"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+    deploy:
+      placement:
+        constraints: [ node.role == manager ]
+      replicas: 1
+
+volumes:
+  db-data:

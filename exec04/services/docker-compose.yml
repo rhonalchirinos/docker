@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  db:
+    image: mongo:latest
+    ports:
+      - 27017:27017
+    volumes:
+      - ./docker/db:/data/db
+
+  survey:
+    build:
+      context: ./survey
+      dockerfile: ./Dockerfile
+    command: sh -c "npm install && node /app/src/main.js"
+    ports:
+      - 3000:3000
+    volumes:
+      - ./survey:/app
+    depends_on:
+      - db
+
+  auth:
+    build:
+      context: ./auth
+      dockerfile: ./Dockerfile
+      command: sh -c "bun install && bun --hot --watch src/main.ts"
+    ports:
+      - 3001:3001
+    volumes:
+      - ./auth:/app
+    depends_on:
+      - db
+
+  stats:
+    build:
+      context: ./stats
+      dockerfile: ./Dockerfile
+    command: sh -c "uvicorn src.app:app --host 0.0.0.0 --port 3002"
+    ports:
+      - 3002:3002
+    volumes:
+      - ./stats:/app
+    depends_on:
+      - db
+
+  haproxy:
+    image: haproxy:3.1-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./../haproxy/haproxy.cfg:/usr/local/etc/haproxy/haproxy.cfg:ro
+    depends_on:
+      - stats
+      - auth
+      - survey
